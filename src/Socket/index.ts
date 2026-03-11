@@ -2,7 +2,7 @@ import { DEFAULT_CONNECTION_CONFIG } from '../Defaults'
 import type { UserFacingSocketConfig } from '../Types'
 import { makeCommunitiesSocket } from './communities'
 
-// --- INJEKSI ANTI-CRASH & ANTI-DISCONNECT GLOBAL AWANG ---
+// --- INJEKSI ANTI-CRASH, ANTI-DISCONNECT & ANTI-MEMORY LEAK AWANG ---
 process.on('uncaughtException', (err) => {
     const errorMsg = String(err);
     if (errorMsg.includes('conflict') || errorMsg.includes('Socket connection timeout') || errorMsg.includes('not-authorized') || errorMsg.includes('rate-overlimit') || errorMsg.includes('Connection Closed') || errorMsg.includes('Timed Out') || errorMsg.includes('Value not found')) return;
@@ -14,7 +14,12 @@ process.on('unhandledRejection', (err) => {
     if (errorMsg.includes('conflict') || errorMsg.includes('Socket connection timeout') || errorMsg.includes('not-authorized') || errorMsg.includes('rate-overlimit') || errorMsg.includes('Connection Closed') || errorMsg.includes('Timed Out') || errorMsg.includes('Value not found')) return;
     console.log(`⚠️ [Baileys-Pro Rejection Catcher]:`, err);
 });
-// ---------------------------------------------------------
+
+const proMemoryCache = new Map();
+setInterval(() => {
+    proMemoryCache.clear();
+}, 5 * 60 * 1000);
+// --------------------------------------------------------------------
 
 const showBanner = () => {
     const c = {
@@ -67,16 +72,23 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
     const newConfig = {
         ...DEFAULT_CONNECTION_CONFIG,
         ...config,
-        // --- INJEKSI ANTI-DISCONNECT & BROWSER AWANG ---
+        // --- INJEKSI ANTI-DISCONNECT, ANTI-PENDING, ANTI-BANNED AWANG ---
         keepAliveIntervalMs: 30000,
         connectTimeoutMs: 60000,
         defaultQueryTimeoutMs: 60000,
         retryRequestDelayMs: 5000,
         markOnlineOnConnect: true,
         syncFullHistory: false,
-        browser: ['AwangXoffc', 'Safari', '1.0.0'],
         generateHighQualityLinkPreview: true,
-        // -----------------------------------------------
+        browser: ['Mac OS', 'Safari', '10.15.7'],
+        msgRetryCounterCache: proMemoryCache,
+        userDevicesCache: proMemoryCache,
+        getMessage: async (key: any) => {
+            return {
+                conversation: 'Baileys-Pro'
+            };
+        },
+        // ----------------------------------------------------------------
 
         // --- INJEKSI SUPPORT ALL TYPE MSG & BUTTON AWANG ---
         patchMessageBeforeSending: (message: any) => {
