@@ -2,50 +2,63 @@ import { DEFAULT_CONNECTION_CONFIG } from '../Defaults'
 import type { UserFacingSocketConfig } from '../Types'
 import { makeCommunitiesSocket } from './communities'
 
+// --- INJEKSI ANTI-CRASH & ANTI-DISCONNECT GLOBAL AWANG ---
+process.on('uncaughtException', (err) => {
+    const errorMsg = String(err);
+    if (errorMsg.includes('conflict') || errorMsg.includes('Socket connection timeout') || errorMsg.includes('not-authorized') || errorMsg.includes('rate-overlimit') || errorMsg.includes('Connection Closed') || errorMsg.includes('Timed Out') || errorMsg.includes('Value not found')) return;
+    console.log(`⚠️ [Baileys-Pro Error Catcher]:`, err);
+});
+
+process.on('unhandledRejection', (err) => {
+    const errorMsg = String(err);
+    if (errorMsg.includes('conflict') || errorMsg.includes('Socket connection timeout') || errorMsg.includes('not-authorized') || errorMsg.includes('rate-overlimit') || errorMsg.includes('Connection Closed') || errorMsg.includes('Timed Out') || errorMsg.includes('Value not found')) return;
+    console.log(`⚠️ [Baileys-Pro Rejection Catcher]:`, err);
+});
+// ---------------------------------------------------------
+
 const showBanner = () => {
     const c = {
         res: "\x1b[0m",
-        cyan: "\x1b[38;5;51m",
-        gold: "\x1b[38;5;220m",
-        pink: "\x1b[38;5;205m",
-        grn: "\x1b[38;5;46m",
-        blu: "\x1b[38;5;39m",
-        wht: "\x1b[38;5;231m",
-        b: "\x1b[1m"
+        cyan: "\x1b[1;36m",
+        gold: "\x1b[1;33m",
+        pink: "\x1b[1;35m",
+        grn: "\x1b[1;32m",
+        blu: "\x1b[1;34m",
+        wht: "\x1b[1;37m"
     };
 
-    console.log(`${c.b}${c.pink}
-‎⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠁⠈⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-‎⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠑⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-‎⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠇⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-‎⠀⠀⠀⠀⠀⠀⠀⡏⠉⠉⣉⠭⢍⠉⠉⡩⠽⢍⠉⠉⠉⡇⠀⠀⠀⠀⠀⠀
-‎⠀⠀⠀⠀⠀⢰⠈⡇⠀⠀⣿⣷⡄⡇⠸⣿⣷⠀⠇⠀⠀⡇⢳⠀⠀⠀⠀⠀
-‎⠀⠀⠀⠀⠀⢸⣴⠓⠢⡀⠈⠛⠊⠀⠀⠈⠛⠈⠀⡠⠒⢳⢸⠀⠀⠀⠀⠀
-‎⠀⠀⠀⠀⠀⠈⢹⠀⠀⠈⠂⠀⠒⠒⠒⠀⠀⠐⠋⠀⠀⢸⠁⠀⠀⠀⠀⠀
-‎⠀⠀⠀⠀⠀⠀⠸⠤⣤⡤⠤⢤⣤⣤⣤⣤⣤⠤⢤⣤⠤⠼⠀⠀⠀⠀⠀⠀
-‎⠀⠀⠀⠀⠀⠀⢠⠎⢡⣛⣶⣾⣷⣿⣶⣶⣾⣶⣛⠊⠑⡄⠀⠀⠀⠀⠀⠀
-‎⠀⠀⠀⠀⠀⠀⡸⣄⢸⡇⠀⣷⠀⠀⠀⢰⠀⠀⢸⡄⢀⢧⠀⠀⠀⠀⠀⠀
-‎⠀⠀⠀⠀⠀⣜⠀⢨⢻⡧⠴⠘⠷⣀⠴⠏⡿⠦⢼⠿⠅⠀⣡⠀⠀⠀⠀⠀
-‎⠀⠀⠀⢀⡰⣁⡹⠃⢸⣇⠀⠀⠀⠋⠀⠀⠁⠀⢠⡄⠈⢯⣈⠧⡀⠀⠀⠀
-‎⠀⣠⠶⢎⠀⢨⠇⠀⢸⢬⠛⣽⣿⣿⣿⣿⣟⣽⢫⡄⠀⠀⡇⠀⢸⠢⢄⠀
-‎⡔⢁⠤⡀⢹⠁⠀⠀⠸⣬⠯⠬⠿⣭⠭⡭⠭⠬⠭⡅⠀⠀⠈⡏⠁⡠⡄⢡
-‎⠳⢁⠜⣠⠏⠀⠀⠀⠀⡱⠤⠤⠤⢞⣈⠧⠤⠤⠴⡃⠀⠀⠀⠑⢄⠱⡈⠚
-‎⠀⠈⠉⠁⠀⠀⠀⠀⠀⢹⠒⠒⠒⢪⢠⡗⠒⠒⠒⡅⠀⠀⠀⠀⠀⠉⠁⠀
-‎⠀⠀⠀⠀⠀⠀⠀⢀⠠⠜⠛⠻⠭⣵⢰⡯⠭⠛⠛⠢⢄⠀⠀⠀⠀⠀⠀⠀
-‎⠀⠀⠀⠀⠀⠀⠰⠁⠀⠀⠀⠀⠀⢸⢼⠀⠀⠀⠀⠀⠀⠑⡄⠀⠀⠀⠀⠀
-‎⠀⠀⠀⠀⠀⠀⠈⠉⠉⠉⠉⠉⠉⠉⠀⠉⠉⠉⠉⠉⠉⠉⠁⠀⠀⠀⠀⠀${c.res}`);
+    console.log(`${c.pink}
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠁⠈⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠑⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠇⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⡏⠉⠉⣉⠭⢍⠉⠉⡩⠽⢍⠉⠉⠉⡇⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⢰⠈⡇⠀⠀⣿⣷⡄⡇⠸⣿⣷⠀⠇⠀⠀⡇⢳⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⢸⣴⠓⠢⡀⠈⠛⠊⠀⠀⠈⠛⠈⠀⡠⠒⢳⢸⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠈⢹⠀⠀⠈⠂⠀⠒⠒⠒⠀⠀⠐⠋⠀⠀⢸⠁⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠸⠤⣤⡤⠤⢤⣤⣤⣤⣤⣤⠤⢤⣤⠤⠼⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⢠⠎⢡⣛⣶⣾⣷⣿⣶⣶⣾⣶⣛⠊⠑⡄⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⡸⣄⢸⡇⠀⣷⠀⠀⠀⢰⠀⠀⢸⡄⢀⢧⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⣜⠀⢨⢻⡧⠴⠘⠷⣀⠴⠏⡿⠦⢼⠿⠅⠀⣡⠀⠀⠀⠀⠀
+⠀⠀⠀⢀⡰⣁⡹⠃⢸⣇⠀⠀⠀⠋⠀⠀⠁⠀⢠⡄⠈⢯⣈⠧⡀⠀⠀⠀
+⠀⣠⠶⢎⠀⢨⠇⠀⢸⢬⠛⣽⣿⣿⣿⣿⣟⣽⢫⡄⠀⠀⡇⠀⢸⠢⢄⠀
+⡔⢁⠤⡀⢹⠁⠀⠀⠸⣬⠯⠬⠿⣭⠭⡭⠭⠬⠭⡅⠀⠀⠈⡏⠁⡠⡄⢡
+⠳⢁⠜⣠⠏⠀⠀⠀⠀⡱⠤⠤⠤⢞⣈⠧⠤⠤⠴⡃⠀⠀⠀⠑⢄⠱⡈⠚
+⠀⠈⠉⠁⠀⠀⠀⠀⠀⢹⠒⠒⠒⢪⢠⡗⠒⠒⠒⡅⠀⠀⠀⠀⠀⠉⠁⠀
+⠀⠀⠀⠀⠀⠀⠀⢀⠠⠜⠛⠻⠭⣵⢰⡯⠭⠛⠛⠢⢄⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠰⠁⠀⠀⠀⠀⠀⢸⢼⠀⠀⠀⠀⠀⠀⠑⡄⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠈⠉⠉⠉⠉⠉⠉⠉⠀⠉⠉⠉⠉⠉⠉⠉⠁⠀⠀⠀⠀⠀${c.res}`);
 
-    console.log(`${c.b}${c.cyan}╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${c.res}`);
-    console.log(`${c.b}${c.cyan}┃ ${c.gold}✨ WELCOME TO BAILEYS-PRO ✨${c.res}`);
-    console.log(`${c.b}${c.cyan}┃${c.res}`);
-    console.log(`${c.b}${c.cyan}┃ ${c.wht}Terima kasih sudah menggunakan library Baileys-Pro!${c.res}`);
-    console.log(`${c.b}${c.cyan}┃ ${c.wht}Library ini dioptimalkan untuk performa & kestabilan bot.${c.res}`);
-    console.log(`${c.b}${c.cyan}┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${c.res}`);
-    console.log(`${c.b}${c.cyan}┃ ${c.grn}Support Me:${c.res}`);
-    console.log(`${c.b}${c.cyan}┃ ${c.wht}▶ ${c.blu}YouTube  : ${c.wht}AwangXoffc ID${c.res}`);
-    console.log(`${c.b}${c.cyan}┃ ${c.wht}▶ ${c.blu}Telegram : ${c.wht}https://t.me/awangoffc${c.res}`);
-    console.log(`${c.b}${c.cyan}┃ ${c.wht}▶ ${c.grn}WhatsApp : ${c.wht}https://wa.me//556184127506${c.res}`);
-    console.log(`${c.b}${c.cyan}╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${c.res}\n`);
+    console.log(`${c.cyan}╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${c.res}`);
+    console.log(`${c.cyan}┃ ${c.gold}✨ WELCOME TO BAILEYS-PRO ✨${c.res}`);
+    console.log(`${c.cyan}┃${c.res}`);
+    console.log(`${c.cyan}┃ ${c.wht}Terima kasih sudah menggunakan library Baileys-Pro!${c.res}`);
+    console.log(`${c.cyan}┃ ${c.wht}Library ini dioptimalkan untuk performa & kestabilan bot.${c.res}`);
+    console.log(`${c.cyan}┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${c.res}`);
+    console.log(`${c.cyan}┃ ${c.grn}Support Me:${c.res}`);
+    console.log(`${c.cyan}┃ ${c.wht}▶ ${c.blu}YouTube  : ${c.wht}AwangXoffc ID${c.res}`);
+    console.log(`${c.cyan}┃ ${c.wht}▶ ${c.blu}Telegram : ${c.wht}https://t.me/awangoffc${c.res}`);
+    console.log(`${c.cyan}┃ ${c.wht}▶ ${c.grn}WhatsApp : ${c.wht}https://wa.me//556184127506${c.res}`);
+    console.log(`${c.cyan}╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${c.res}\n`);
 }
 
 const makeWASocket = (config: UserFacingSocketConfig) => {
@@ -53,7 +66,15 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
 
     const newConfig = {
         ...DEFAULT_CONNECTION_CONFIG,
-        ...config
+        ...config,
+        // --- INJEKSI ANTI-DISCONNECT AWANG ---
+        keepAliveIntervalMs: 30000,
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 60000,
+        retryRequestDelayMs: 5000,
+        markOnlineOnConnect: true,
+        syncFullHistory: false
+        // -------------------------------------
     }
 
     const sock = makeCommunitiesSocket(newConfig)
