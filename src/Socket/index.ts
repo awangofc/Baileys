@@ -67,23 +67,28 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
     const newConfig = {
         ...DEFAULT_CONNECTION_CONFIG,
         ...config,
-        // --- INJEKSI ANTI-DISCONNECT AWANG ---
+        // --- INJEKSI ANTI-DISCONNECT & BROWSER AWANG ---
         keepAliveIntervalMs: 30000,
         connectTimeoutMs: 60000,
         defaultQueryTimeoutMs: 60000,
         retryRequestDelayMs: 5000,
         markOnlineOnConnect: true,
         syncFullHistory: false,
-        // -------------------------------------
+        browser: ['AwangXoffc', 'Safari', '1.0.0'],
+        generateHighQualityLinkPreview: true,
+        // -----------------------------------------------
 
-        // --- INJEKSI SUPPORT ALL TYPE MSG AWANG ---
+        // --- INJEKSI SUPPORT ALL TYPE MSG & BUTTON AWANG ---
         patchMessageBeforeSending: (message: any) => {
             const requiresPatch = !!(
-                message.buttonsMessage ||
-                message.templateMessage ||
-                message.listMessage ||
-                message.interactiveMessage
+                message?.buttonsMessage ||
+                message?.templateMessage ||
+                message?.listMessage ||
+                message?.interactiveMessage ||
+                message?.carouselMessage ||
+                message?.documentWithCaptionMessage
             );
+            
             if (requiresPatch) {
                 message = {
                     viewOnceMessage: {
@@ -99,7 +104,7 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
             }
             return message;
         }
-        // ------------------------------------------
+        // ---------------------------------------------------
     }
 
     const sock = makeCommunitiesSocket(newConfig)
