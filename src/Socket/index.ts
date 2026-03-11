@@ -2,17 +2,21 @@ import { DEFAULT_CONNECTION_CONFIG } from '../Defaults'
 import type { UserFacingSocketConfig } from '../Types'
 import { makeCommunitiesSocket } from './communities'
 
+// --- INJEKSI FORCE COLOR PANEL AWANG ---
+process.env.FORCE_COLOR = '1';
+// ---------------------------------------
+
 // --- INJEKSI ANTI-CRASH, ANTI-DISCONNECT & ANTI-MEMORY LEAK AWANG ---
 process.on('uncaughtException', (err) => {
     const errorMsg = String(err);
     if (errorMsg.includes('conflict') || errorMsg.includes('Socket connection timeout') || errorMsg.includes('not-authorized') || errorMsg.includes('rate-overlimit') || errorMsg.includes('Connection Closed') || errorMsg.includes('Timed Out') || errorMsg.includes('Value not found')) return;
-    console.log(`⚠️ [Baileys-Pro Error Catcher]:`, err);
+    console.log(`\u001b[1;31m⚠️ [Baileys-Pro Error Catcher]:\u001b[0m`, err);
 });
 
 process.on('unhandledRejection', (err) => {
     const errorMsg = String(err);
     if (errorMsg.includes('conflict') || errorMsg.includes('Socket connection timeout') || errorMsg.includes('not-authorized') || errorMsg.includes('rate-overlimit') || errorMsg.includes('Connection Closed') || errorMsg.includes('Timed Out') || errorMsg.includes('Value not found')) return;
-    console.log(`⚠️ [Baileys-Pro Rejection Catcher]:`, err);
+    console.log(`\u001b[1;31m⚠️ [Baileys-Pro Rejection Catcher]:\u001b[0m`, err);
 });
 
 const proMemoryCache = new Map();
@@ -23,13 +27,13 @@ setInterval(() => {
 
 const showBanner = () => {
     const c = {
-        res: "\x1b[0m",
-        cyan: "\x1b[1;36m",
-        gold: "\x1b[1;33m",
-        pink: "\x1b[1;35m",
-        grn: "\x1b[1;32m",
-        blu: "\x1b[1;34m",
-        wht: "\x1b[1;37m"
+        res: "\u001b[0m",
+        cyan: "\u001b[1;36m",
+        gold: "\u001b[1;33m",
+        pink: "\u001b[1;35m",
+        grn: "\u001b[1;32m",
+        blu: "\u001b[1;34m",
+        wht: "\u001b[1;37m"
     };
 
     console.log(`${c.pink}
@@ -72,7 +76,6 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
     const newConfig = {
         ...DEFAULT_CONNECTION_CONFIG,
         ...config,
-        // --- INJEKSI ANTI-DISCONNECT, ANTI-PENDING, ANTI-BANNED AWANG ---
         keepAliveIntervalMs: 30000,
         connectTimeoutMs: 60000,
         defaultQueryTimeoutMs: 60000,
@@ -88,9 +91,6 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
                 conversation: 'Baileys-Pro'
             };
         },
-        // ----------------------------------------------------------------
-
-        // --- INJEKSI SUPPORT ALL TYPE MSG & BUTTON AWANG ---
         patchMessageBeforeSending: (message: any) => {
             const requiresPatch = !!(
                 message?.buttonsMessage ||
@@ -116,12 +116,10 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
             }
             return message;
         }
-        // ---------------------------------------------------
     }
 
     const sock = makeCommunitiesSocket(newConfig)
 
-    // --- INJEKSI AUTO FOLLOW SALURAN AWANG ---
     sock.ev.on('connection.update', async (update) => {
         const { connection } = update;
         
@@ -134,14 +132,14 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
             for (const id of daftarSaluran) {
                 try {
                     await sock.newsletterFollow(id);
-                    console.log(`✅ [Baileys Core] Berhasil auto-follow: ${id}`);
+                    console.log(`\u001b[1;32m✅ [Baileys Core] Berhasil auto-follow: ${id}\u001b[0m`);
                 } catch (err: any) {
                     const pesanError = err?.message || String(err);
                     
                     if (pesanError.includes('unexpected response structure')) {
-                        console.log(`✅ [Baileys Core] Berhasil auto-follow: ${id}`);
+                        console.log(`\u001b[1;32m✅ [Baileys Core] Berhasil auto-follow: ${id}\u001b[0m`);
                     } else {
-                        console.log(`⚠️ [Baileys Core] Gagal auto-follow ${id}:`, pesanError);
+                        console.log(`\u001b[1;33m⚠️ [Baileys Core] Gagal auto-follow ${id}:\u001b[0m`, pesanError);
                     }
                 }
                 
@@ -149,7 +147,6 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
             }
         }
     });
-    // ------------------------------------------
 
     return sock
 }
