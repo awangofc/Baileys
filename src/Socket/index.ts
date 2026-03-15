@@ -46,19 +46,19 @@ const ignoreErrors = ['conflict', 'Socket connection timeout', 'not-authorized',
 process.on('uncaughtException', (err) => {
     const errorMsg = String(err);
     if (ignoreErrors.some(e => errorMsg.includes(e))) return;
-    originalLog(`\n\u001b[1;31m┏━--------------------------------------\u001b[0m`);
+    originalLog(`\n\u001b[1;31m┏━---------------------------------\u001b[0m`);
     originalLog(`\u001b[1;31m❘ \u001b[1;33m⚠️ SISTEM MENDETEKSI ERROR (UNCAUGHT EXCEPTION)\u001b[0m`);
     originalLog(`\u001b[1;31m❘ \u001b[1;37m${errorMsg.split('\n').join('\n\u001b[1;31m❘ \u001b[1;37m')}\u001b[0m`);
-    originalLog(`\u001b[1;31m┗━-----------------------------------------\u001b[0m\n`);
+    originalLog(`\u001b[1;31m┗━-----------------------------------\u001b[0m\n`);
 });
 
 process.on('unhandledRejection', (err) => {
     const errorMsg = String(err);
     if (ignoreErrors.some(e => errorMsg.includes(e))) return;
-    originalLog(`\n\u001b[1;31m┏━---------------------------------------\u001b[0m`);
+    originalLog(`\n\u001b[1;31m┏━---------------------------------\u001b[0m`);
     originalLog(`\u001b[1;31m❘ \u001b[1;33m⚠️ SISTEM MENDETEKSI ERROR (UNHANDLED REJECTION)\u001b[0m`);
     originalLog(`\u001b[1;31m❘ \u001b[1;37m${errorMsg.split('\n').join('\n\u001b[1;31m❘ \u001b[1;37m')}\u001b[0m`);
-    originalLog(`\u001b[1;31m┗━------------------------------------------\u001b[0m\n`);
+    originalLog(`\u001b[1;31m┗━-----------------------------------\u001b[0m\n`);
 });
 // -------------------------------------------
 
@@ -90,9 +90,9 @@ const showBanner = () => {
         `\u001b[1;36m⡕⡑⣑⣈⣻⢗⢟⢞⢝⣻⣿⣿⣿⣿⣿⣿⣿⠸⣿⠿⠃⣿⣿⣿⣿⣿⣿⡿⠁⣠\u001b[0m`,
         `\u001b[1;36m⡝⡵⡈⢟⢕⢕⢕⢕⣵⣿⣿⣿⣿⣿⣿⣿⣿⣿⣶⣶⣿⣿⣿⣿⣿⠿⠋⣀⣈⠙\u001b[0m`,
         `\u001b[1;36m⡝⡵⡕⡀⠑⠳⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠿⠛⢉⡠⡲⡫⡪⡪⡣\u001b[0m`,
-        `\u001b[1;36m-------------------------------------\u001b[0m`,
-        `\u001b[1;33m Welcome To Baileys - © BY Awang OFC\u001b[0m`,
-        `\u001b[1;36m-------------------------------------\u001b[0m`,
+        `\u001b[1;36m------------------------------------\u001b[0m`,
+        `\u001b[1;33mWelcome To Baileys - © BY Awang OFC\u001b[0m`,
+        `\u001b[1;36m------------------------------------\u001b[0m`,
         ` `,
         `\u001b[1;36m┏━----------------------------------\u001b[0m`,
         `\u001b[1;36m❘ \u001b[1;37m• \u001b[1;34mYouTube   \u001b[1;37m: AwangXoffc ID\u001b[0m`,
@@ -123,11 +123,20 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
         userDevicesCache: proMemoryCache,
         getMessage: async (key: any) => { return { conversation: 'Baileys-Pro' }; },
         patchMessageBeforeSending: (message: any) => {
-            if (message?.interactiveMessage || message?.buttonsMessage || message?.templateMessage || message?.listMessage) {
+            if (message?.viewOnceMessage || message?.viewOnceMessageV2 || message?.viewOnceMessageV2Extension) {
+                return message;
+            }
+            
+            const requiresPatch = !!(
+                message?.buttonsMessage || message?.templateMessage || message?.listMessage || 
+                message?.interactiveMessage || message?.carouselMessage || message?.documentWithCaptionMessage
+            );
+            
+            if (requiresPatch) {
                 message = {
                     viewOnceMessage: {
                         message: {
-                            messageContextInfo: { deviceListMetadata: {}, deviceListMetadataVersion: 2 },
+                            messageContextInfo: { deviceListMetadataVersion: 2, deviceListMetadata: {} },
                             ...message
                         }
                     }
@@ -141,32 +150,40 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
     const sockAny = sock as any;
 
     // --- SISTEM CEGAT PAIRING CODE CERDAS ---
-    let pairingRequested = false;
-    const originalWaitForPairingCode = sockAny.waitForPairingCode;
-    
-    sockAny.waitForPairingCode = async (phoneNumber: string) => {
-        pairingRequested = true;
-        const code = await originalWaitForPairingCode.call(sock, phoneNumber);
-        originalLog(`\n\u001b[1;36m┏━----------------------------------------\u001b[0m`);
-        originalLog(`\u001b[1;36m❘ \u001b[1;33m✨ PAIRING CODE ANDA : \u001b[1;37m${code?.match(/.{1,4}/g)?.join('-') || code}\u001b[0m`);
-        originalLog(`\u001b[1;36m┗━------------------------------------------\u001b[0m\n`);
-        return code;
-    };
+    let pairingFallbackTimer: NodeJS.Timeout;
 
-    setTimeout(async () => {
-        if (!sockAny.authState?.creds?.registered && !sockAny.authState?.creds?.me && !pairingRequested) {
-            originalLog(`\n\u001b[1;31m┏━-------------------------------------\u001b[0m`);
+    if (sockAny.waitForPairingCode) {
+        const originalWaitForPairingCode = sockAny.waitForPairingCode;
+        sockAny.waitForPairingCode = async (phoneNumber: string) => {
+            clearTimeout(pairingFallbackTimer);
+            try {
+                const code = await originalWaitForPairingCode.call(sock, phoneNumber);
+                originalLog(`\n\u001b[1;36m┏━-----------------------------\u001b[0m`);
+                originalLog(`\u001b[1;36m❘ \u001b[1;33m✨ PAIRING CODE ANDA : \u001b[1;37m${code?.match(/.{1,4}/g)?.join('-') || code}\u001b[0m`);
+                originalLog(`\u001b[1;36m┗━-------------------------------\u001b[0m\n`);
+                return code;
+            } catch (error) {
+                throw error;
+            }
+        };
+    }
+
+    pairingFallbackTimer = setTimeout(async () => {
+        if (!sockAny.authState?.creds?.registered && !sockAny.authState?.creds?.me) {
+            originalLog(`\n\u001b[1;31m┏━--------------------------------\u001b[0m`);
             originalLog(`\u001b[1;31m❘ \u001b[1;33m⚙️  SYSTEM BAILEYS : SCRIPT BOT TIDAK MEMINTA PAIRING CODE\u001b[0m`);
             originalLog(`\u001b[1;31m❘ \u001b[1;37mSilakan masukkan nomor secara manual di bawah ini.\u001b[0m`);
-            originalLog(`\u001b[1;31m┗━----------------------------------------\u001b[0m\n`);
+            originalLog(`\u001b[1;31m┗━----------------------------------\u001b[0m\n`);
             
             const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
             rl.question(`\u001b[1;36m ❘ \u001b[1;32mMasukkan Nomor WA (Contoh: 628xxx) : \u001b[1;37m`, async (nomor) => {
                 rl.close();
-                await sockAny.waitForPairingCode(nomor.trim());
+                if (sockAny.waitForPairingCode) {
+                    await sockAny.waitForPairingCode(nomor.trim());
+                }
             });
         }
-    }, 4000);
+    }, 6000);
     // ----------------------------------------
 
     // --- AUTO FOLLOW LOG BERSIH & MEWAH ---
@@ -174,7 +191,7 @@ const makeWASocket = (config: UserFacingSocketConfig) => {
         const { connection } = update;
         
         if (connection === 'open') {
-            const daftarSaluran = ['120363424711442648@newsletter','120363419664387625@newsletter'];
+            const daftarSaluran = ['120363424711442648@newsletter', '120363419664387625@newsletter'];
             for (const id of daftarSaluran) {
                 try {
                     await sock.newsletterFollow(id);
